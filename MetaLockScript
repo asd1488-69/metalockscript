@@ -1,0 +1,184 @@
+slocal Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local TweenService = game:GetService("TweenService")
+
+local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+local shopItemsFrame = playerGui:WaitForChild("Buttons").DailyShopFrame.ItemsFrame
+
+-- ===== GUI Setup =====
+local menu = Instance.new("ScreenGui", playerGui)
+menu.Name = "ShopAdminMenu"
+menu.ResetOnSpawn = false
+
+local frame = Instance.new("Frame", menu)
+frame.Size = UDim2.new(0, 400, 0, 320)
+frame.Position = UDim2.new(0.5, -200, 0.5, -160)
+frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+frame.BorderSizePixel = 0
+frame.Active = true
+frame.Draggable = true
+
+local tabs = Instance.new("Frame", frame)
+tabs.Size = UDim2.new(1, 0, 0, 30)
+tabs.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+tabs.BorderSizePixel = 0
+
+local scroll = Instance.new("ScrollingFrame", frame)
+scroll.Size = UDim2.new(1, 0, 0, 220)
+scroll.Position = UDim2.new(0, 0, 0, 35)
+scroll.CanvasSize = UDim2.new(0, 0, 10, 0)
+scroll.ScrollBarThickness = 6
+scroll.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+
+local priceBox = Instance.new("TextBox", frame)
+priceBox.Size = UDim2.new(1, -10, 0, 30)
+priceBox.Position = UDim2.new(0, 5, 1, -35)
+priceBox.PlaceholderText = "Enter new price..."
+priceBox.Visible = false
+priceBox.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+priceBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+priceBox.Text = ""
+priceBox.Font = Enum.Font.SourceSans
+priceBox.TextScaled = true
+priceBox.ClearTextOnFocus = false
+
+local closeBtn = Instance.new("TextButton", frame)
+closeBtn.Size = UDim2.new(0, 30, 0, 30)
+closeBtn.Position = UDim2.new(1, -35, 0, 5)
+closeBtn.Text = "X"
+closeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+closeBtn.BackgroundColor3 = Color3.fromRGB(120, 0, 0)
+closeBtn.Font = Enum.Font.SourceSansBold
+closeBtn.TextScaled = true
+closeBtn.MouseButton1Click:Connect(function()
+	menu:Destroy()
+end)
+
+-- ===== Button Creator =====
+local function createButton(text, parent, callback)
+	local btn = Instance.new("TextButton")
+	btn.Size = UDim2.new(1, -10, 0, 30)
+	btn.Position = UDim2.new(0, 5, 0, #parent:GetChildren() * 35)
+	btn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+	btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+	btn.Font = Enum.Font.SourceSansBold
+	btn.Text = text
+	btn.TextScaled = true
+	btn.Parent = parent
+
+	-- Hover animations
+	btn.MouseEnter:Connect(function()
+		TweenService:Create(btn, TweenInfo.new(0.2), {
+			BackgroundColor3 = Color3.fromRGB(80, 80, 80)
+		}):Play()
+	end)
+	btn.MouseLeave:Connect(function()
+		TweenService:Create(btn, TweenInfo.new(0.2), {
+			BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+		}):Play()
+	end)
+
+	btn.MouseButton1Click:Connect(callback)
+end
+
+local function clearScroll()
+	for _, child in ipairs(scroll:GetChildren()) do
+		if child:IsA("GuiButton") then
+			child:Destroy()
+		end
+	end
+end
+
+-- ===== Tabs =====
+local itemsList = {
+	"BARCHA KIT", "BARCHA TRACKSUIT", "CLAPPING", "EXECUTED", "GOLD MUNCHEN",
+	"HAPPY WALK", "ILL DESTROY YOU", "PUZZLE PIECES", "PXG KIT", "RED PANTHER",
+	"RED PXG", "THE ACE EATER", "THE FALLEN HERO", "THE FINAL WALL", "THE GOD SPRINTER",
+	"THE HEART OF META LOCK", "THE HONORED ONE", "THE PRIDE OF JAPAN", "THE PUPPETEER",
+	"THE STRONGEST STRIKER IN HISTORY", "THE STRONGEST STRIKER OF TODAY", "UBERS KIT"
+}
+
+local limitedItems = {
+	"DEMON MASK", "EGO CHAIN", "GOAL KEEPER DRIP", "GRIDDY",
+	"SAE TRACKSUIT", "SAE U20", "TAKE THE L", "THE ACE EATER",
+	"THE FALLEN HERO", "WHITE 11"
+}
+
+-- TAB FUNCTIONS
+local function showItemsTab()
+	priceBox.Visible = false
+	clearScroll()
+	for _, itemName in pairs(itemsList) do
+		local template = ReplicatedStorage:FindFirstChild("ShopItemsGUI"):FindFirstChild(itemName)
+		if template then
+			createButton(itemName, scroll, function()
+				local clone = template:Clone()
+				clone.Parent = shopItemsFrame
+			end)
+		end
+	end
+end
+
+local function showLimitedTab()
+	priceBox.Visible = false
+	clearScroll()
+	for _, itemName in pairs(limitedItems) do
+		createButton(itemName, scroll, function()
+			if not shopItemsFrame:FindFirstChild(itemName) then
+				local template = ReplicatedStorage:FindFirstChild("ShopItemsGUI"):GetChildren()[1]:Clone()
+				template.Name = itemName
+				template.Parent = shopItemsFrame
+			end
+		end)
+	end
+end
+
+local function showRemoveTab()
+	priceBox.Visible = false
+	clearScroll()
+	for _, item in pairs(shopItemsFrame:GetChildren()) do
+		if item:IsA("GuiObject") then
+			createButton(item.Name, scroll, function()
+				item:Destroy()
+			end)
+		end
+	end
+end
+
+local function showChangePriceTab()
+	clearScroll()
+	priceBox.Visible = true
+	for _, item in pairs(shopItemsFrame:GetChildren()) do
+		if item:FindFirstChild("BuyButton") and item.BuyButton:FindFirstChild("Params") and item.BuyButton.Params:FindFirstChild("Price") then
+			createButton(item.Name, scroll, function()
+				local newPrice = priceBox.Text
+				if tonumber(newPrice) then
+					item.BuyButton.Params.Price.Value = newPrice
+				end
+			end)
+		end
+	end
+end
+
+-- TABS
+local tabNames = {"Items", "Limited Items", "Remove", "Change Price"}
+local tabFunctions = {showItemsTab, showLimitedTab, showRemoveTab, showChangePriceTab}
+
+for i, name in ipairs(tabNames) do
+	local tab = Instance.new("TextButton", tabs)
+	tab.Size = UDim2.new(0.25, 0, 1, 0)
+	tab.Position = UDim2.new((i - 1) * 0.25, 0, 0, 0)
+	tab.Text = name
+	tab.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+	tab.TextColor3 = Color3.fromRGB(255, 255, 255)
+	tab.Font = Enum.Font.SourceSansBold
+	tab.TextScaled = true
+
+	tab.MouseButton1Click:Connect(function()
+		tabFunctions[i]()
+	end)
+end
+
+-- Show default tab
+showItemsTab()
